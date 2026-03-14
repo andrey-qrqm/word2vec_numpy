@@ -3,7 +3,15 @@ import re
 from datetime import datetime
 
 class Config:
-    def __init__(self, vocab_size, emb_size, learning_rate, epochs, batch_size, print_cost):
+    def __init__(
+        self, 
+        vocab_size, 
+        emb_size, 
+        learning_rate, 
+        epochs, 
+        batch_size, 
+        print_cost
+        ):
         self.vocab_size = vocab_size
         self.emb_size = emb_size
         self.learning_rate = learning_rate
@@ -79,8 +87,6 @@ def initialize_wrd_emb(vocab_size, emb_size):
     emb_size: int. word embedding size. How many dimensions to represent each vocabulary
     """
     WRD_EMB = np.random.randn(vocab_size, emb_size) * 0.01
-    
-    assert(WRD_EMB.shape == (vocab_size, emb_size))
     return WRD_EMB
 
 def initialize_dense(input_size, output_size):
@@ -89,7 +95,6 @@ def initialize_dense(input_size, output_size):
     output_szie: int. size of the output out of the dense layer
     """
     W = np.random.randn(output_size, input_size) * 0.01
-    assert(W.shape == (output_size, input_size))
     return W
 
 def initialize_parameters(vocab_size, emb_size):
@@ -136,7 +141,7 @@ def update_parameters_ns(parameters, Ids, Gradient, learning_rate):
     parameters['WRD_EMB'][Ids.pos_id]    -= learning_rate * Gradient.grad_v_p
     parameters['WRD_EMB'][Ids.neg_ids]   -= learning_rate * Gradient.grad_V_n
 
-def skipgram_model_training_ns(X, Y, negative_samples, config):
+def skipgram_model_training_ns(X, Y, negative_samples, config, parameters):
     costs = []
     m = X.shape[1]
 
@@ -169,7 +174,7 @@ def skipgram_model_training_ns(X, Y, negative_samples, config):
             epoch_cost += batch_cost / len(batch_idx)
         costs.append(epoch_cost)
 
-        if config.print_cost and epoch % max(1, config.epochs // 500) == 0:
+        if config.print_cost and epoch % max(1, config.epochs // 10) == 0:
             print("Cost after epoch {}: {:.4f}".format(epoch, epoch_cost))
         if epoch % max(1, config.epochs // 100) == 0:
             config.learning_rate *= 0.98
@@ -191,6 +196,8 @@ if __name__ == "__main__":
         batch_size=128,
         print_cost=True
     )
+
     params = skipgram_model_training_ns(
-        X, Y, negative_samples, config
+        X, Y, negative_samples, config,
+        parameters=None,
     )
