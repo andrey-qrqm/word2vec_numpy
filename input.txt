@@ -1,9 +1,0 @@
-Carlos Orozco decided to study computer science when he realized that programming was about formalizing ideas and solving problems systematically. He was drawn to the mix of logic, mathematics, and creativity, a field where rigorous thinking leads to tangible results.
-
-His interest deepened when he began working on real-world projects. That’s when computer science stopped being abstract. Designing structured solutions under real constraints and seeing software used in real environments confirmed that this was the work he wanted to pursue professionally.
-
-Today, Carlos holds a PhD in computer science, is a professor at two universities, and serves as an expert consultant on quantum software architecture for Colombia’s Ministry of Science, Technology, and Innovation. As a senior software engineer, he has collaborated with global firms like EPAM and held leadership roles in the NASA International Space Apps Challenge. Beyond his professional work, Carlos authors books and academic research focused on software architecture, engineering methodologies, and the formal structure of complex systems. While still furthering his studies, Carlos is an avid user of the JetBrains Student Pack.
-
- “The Student Pack becomes a gateway to working with the same ecosystem used in real-world, high-impact projects.”
-
-We spoke with Carlos about learning computer science, navigating interviews, and how professional tools supported his journey.
