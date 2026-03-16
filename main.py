@@ -1,4 +1,5 @@
 import numpy as np 
+import pandas as pd
 import re
 from datetime import datetime
 
@@ -32,9 +33,10 @@ class Gradients:
         self.grad_V_n = grad_V_n
 
 def get_text(filename):
-    with open(filename) as f:
-        data = f.read()
-    return data
+    data = " ".join(pd.read_csv(filename)['data'].dropna()) # Combine all text data into a single string
+    words = data.split() # Split the text into words (854770 words total)
+    text = " ".join(words[:10000]) # Use only first 10000 to reduce training time 
+    return text
 
 
 def tokenize(text):
@@ -144,19 +146,15 @@ def update_parameters_ns(parameters, Ids, Gradient, learning_rate):
 def skipgram_model_training_ns(X, Y, negative_samples, config, parameters):
     costs = []
     m = X.shape[1]
-
     if parameters is None:
         parameters = initialize_parameters(config.vocab_size, config.emb_size)
-
     begin_time = datetime.now()
     for epoch in range(config.epochs):
         epoch_cost = 0
         # Shuffle
         perm = np.random.permutation(m)
-
         for batch_start in range(0, m, config.batch_size):
             batch_idx = perm[batch_start:batch_start + config.batch_size]
-
             batch_cost = 0
             for idx in batch_idx:
                 center_id = X[0, idx]
@@ -172,31 +170,36 @@ def skipgram_model_training_ns(X, Y, negative_samples, config, parameters):
                 )
                 batch_cost += loss
             epoch_cost += batch_cost / len(batch_idx)
+        epoch_cost /= (m / config.batch_size)
         costs.append(epoch_cost)
-
         if config.print_cost and epoch % max(1, config.epochs // 10) == 0:
             print("Cost after epoch {}: {:.4f}".format(epoch, epoch_cost))
-        if epoch % max(1, config.epochs // 100) == 0:
-            config.learning_rate *= 0.98
+        if epoch % max(1, config.epochs // 10) == 0:
+            config.learning_rate *= 0.95
     end_time = datetime.now()
     print('Training time: {}'.format(end_time - begin_time))
     return parameters
 
 if __name__ == "__main__":
-    text = get_text('input.txt')
+    text = get_text('data/bbc_data.csv')
     tokens = tokenize(text)
     word_to_id, id_to_word = mapping(tokens)
     vocab_size = len(word_to_id)
-    X, Y, negative_samples = generate_training_data(tokens, word_to_id, window_size=2, negative_samples_size=5)
+    X, Y, negative_samples = generate_training_data(
+        tokens, 
+        word_to_id, 
+        window_size=2, 
+        negative_samples_size=5)
+
     config = Config(        
         vocab_size=vocab_size,
         emb_size=50,
-        learning_rate=0.05,
+        learning_rate=0.01,
         epochs=1000,
         batch_size=128,
         print_cost=True
     )
-
+    print("Configuration - {}".format(config))
     params = skipgram_model_training_ns(
         X, Y, negative_samples, config,
         parameters=None,
