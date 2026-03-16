@@ -21,18 +21,6 @@ class Config:
         self.batch_size = batch_size
         self.print_cost = print_cost
 
-class Ids:
-    def __init__(self, center_id, pos_id, neg_ids):
-        self.center_id = center_id
-        self.pos_id = pos_id
-        self.neg_ids = neg_ids
-
-class Gradients:
-    def __init__(self, grad_v_c, grad_v_p, grad_V_n):
-        self.grad_v_c = grad_v_c
-        self.grad_v_p = grad_v_p
-        self.grad_V_n = grad_V_n
-
 def get_text(filename):
     # Combine all text data into a single string
     data = " ".join(pd.read_csv(filename)['data'].dropna())
