@@ -1,16 +1,17 @@
-import numpy as np 
-import pandas as pd
 import re
 from datetime import datetime
 
+import numpy as np
+import pandas as pd
+
 class Config:
     def __init__(
-        self, 
-        vocab_size, 
-        emb_size, 
-        learning_rate, 
-        epochs, 
-        batch_size, 
+        self,
+        vocab_size,
+        emb_size,
+        learning_rate,
+        epochs,
+        batch_size,
         print_cost
         ):
         self.vocab_size = vocab_size
@@ -33,9 +34,12 @@ class Gradients:
         self.grad_V_n = grad_V_n
 
 def get_text(filename):
-    data = " ".join(pd.read_csv(filename)['data'].dropna()) # Combine all text data into a single string
-    words = data.split() # Split the text into words (854770 words total)
-    text = " ".join(words[:10000]) # Use only first 10000 to reduce training time 
+    # Combine all text data into a single string
+    data = " ".join(pd.read_csv(filename)['data'].dropna())
+    # Split the text into words (854770 words total)
+    words = data.split()
+    # Use only first 10000 to reduce training time
+    text = " ".join(words[:10000])
     return text
 
 
@@ -45,8 +49,8 @@ def tokenize(text):
     return pattern.findall(text.lower())
 
 def mapping(tokens):
-    word_to_id = dict()
-    id_to_word = dict()
+    word_to_id = {}
+    id_to_word = {}
 
     for i, token in enumerate(set(tokens)):
         word_to_id[token] = i
@@ -66,7 +70,6 @@ def generate_training_data(tokens, word_to_id, window_size, negative_samples_siz
 
         excluded_ids = set(word_to_id[tokens[k]] for k in nbr_inds)
         excluded_ids.add(word_to_id[tokens[i]])
-
         available_ids = list(all_ids - excluded_ids)
 
         for j in nbr_inds:
@@ -80,7 +83,7 @@ def generate_training_data(tokens, word_to_id, window_size, negative_samples_siz
     Y = np.array(Y) # Shape: (1, m)
     Y = np.expand_dims(Y, axis=0)
     negative_samples = np.array(negative_samples) # Shape: (m, negative_samples_size)
-    print("x shape: {}, y shape: {}, negative samples shape: {}".format(X.shape, Y.shape, negative_samples.shape))
+    print(f"x shape: {X.shape}, y shape: {Y.shape}, negative samples shape: {negative_samples.shape}")
     return X, Y, negative_samples
 
 def initialize_wrd_emb(vocab_size, emb_size):
@@ -104,8 +107,7 @@ def initialize_parameters(vocab_size, emb_size):
     W = initialize_dense(emb_size, vocab_size)
     parameters = {}
     parameters['WRD_EMB'] = WRD_EMB
-    parameters['W'] = W
-    
+    parameters['W'] = W    
     return parameters
 
 def sigmoid(x):
@@ -113,15 +115,14 @@ def sigmoid(x):
 
 def negative_sampling_loss(Id, parameters):
     """
-    Id.center_id : int       — center word index
-    Id.pos_id    : int       — positive neighbor index
-    Id.neg_ids   : (K,)      — indices of K negative words
+    Id["center_id"]: int       — center word index
+    Id["pos_id"]: int       — positive neighbor index
+    Id["neg_ids"]: (K,)      — indices of K negative words
     """
     WRD_EMB = parameters['WRD_EMB']  # (vocab_size, emb_size)
-
-    v_c = WRD_EMB[Id.center_id]   # (emb_size,) — center word vector 
-    v_p = WRD_EMB[Id.pos_id]      # (emb_size,) — positive neighbor vector
-    V_n = WRD_EMB[Id.neg_ids]     # (K, emb_size) — negative neighbor vectors
+    v_c = WRD_EMB[Id["center_id"]]   # (emb_size,) — center word vector 
+    v_p = WRD_EMB[Id["pos_id"]]      # (emb_size,) — positive neighbor vector
+    V_n = WRD_EMB[Id["neg_ids"]]     # (K, emb_size) — negative neighbor vectors
     score_pos = np.dot(v_c, v_p)          # scalar
     score_neg = V_n @ v_c                 # (K,)
 
@@ -134,14 +135,19 @@ def negative_sampling_loss(Id, parameters):
     grad_v_c = d_pos * v_p + d_neg @ V_n              # (emb_size,)
     grad_v_p = d_pos * v_c                             # (emb_size,)
     grad_V_n = np.outer(d_neg, v_c)                   # (K, emb_size)
-    Gradient = Gradients(grad_v_c, grad_v_p, grad_V_n)
+    
+    gradient = {
+        "v_c": grad_v_c,
+        "v_p": grad_v_p,
+        "V_n": grad_V_n
+    }
 
-    return loss, Gradient
+    return loss, gradient
 
-def update_parameters_ns(parameters, Ids, Gradient, learning_rate):
-    parameters['WRD_EMB'][Ids.center_id] -= learning_rate * Gradient.grad_v_c
-    parameters['WRD_EMB'][Ids.pos_id]    -= learning_rate * Gradient.grad_v_p
-    parameters['WRD_EMB'][Ids.neg_ids]   -= learning_rate * Gradient.grad_V_n
+def update_parameters_ns(parameters, Id, gradient, learning_rate):
+    parameters['WRD_EMB'][Id["center_id"]] -= learning_rate * gradient["v_c"]
+    parameters['WRD_EMB'][Id["pos_id"]]    -= learning_rate * gradient["v_p"]
+    parameters['WRD_EMB'][Id["neg_ids"]]   -= learning_rate * gradient["V_n"]
 
 def skipgram_model_training_ns(X, Y, negative_samples, config, parameters):
     costs = []
@@ -157,15 +163,16 @@ def skipgram_model_training_ns(X, Y, negative_samples, config, parameters):
             batch_idx = perm[batch_start:batch_start + config.batch_size]
             batch_cost = 0
             for idx in batch_idx:
-                center_id = X[0, idx]
-                pos_id = Y[0, idx]
-                neg_ids = negative_samples[idx]
-                Id = Ids(center_id, pos_id, neg_ids)
-                loss, Gradient = negative_sampling_loss(Id, parameters)
+                ids = {
+                    "center_id": X[0, idx],
+                    "pos_id": Y[0, idx],
+                    "neg_ids": negative_samples[idx]
+                }
+                loss, gradient = negative_sampling_loss(ids, parameters)
                 update_parameters_ns(
-                    parameters, 
-                    Id, 
-                    Gradient, 
+                    parameters,
+                    ids,
+                    gradient,
                     config.learning_rate
                 )
                 batch_cost += loss
@@ -173,33 +180,36 @@ def skipgram_model_training_ns(X, Y, negative_samples, config, parameters):
         epoch_cost /= (m / config.batch_size)
         costs.append(epoch_cost)
         if config.print_cost and epoch % max(1, config.epochs // 10) == 0:
-            print("Cost after epoch {}: {:.4f}".format(epoch, epoch_cost))
+            print(f"Cost after epoch {epoch}: {epoch_cost:.4f}")
         if epoch % max(1, config.epochs // 10) == 0:
             config.learning_rate *= 0.95
     end_time = datetime.now()
-    print('Training time: {}'.format(end_time - begin_time))
+    print(f'Training time: {end_time - begin_time}')
     return parameters
 
 if __name__ == "__main__":
-    text = get_text('data/bbc_data.csv')
-    tokens = tokenize(text)
+    TEXT = get_text('data/bbc_data.csv')
+    tokens = tokenize(TEXT)
     word_to_id, id_to_word = mapping(tokens)
-    vocab_size = len(word_to_id)
+    VOCAB_SIZE = len(word_to_id)
     X, Y, negative_samples = generate_training_data(
-        tokens, 
-        word_to_id, 
-        window_size=2, 
-        negative_samples_size=5)
+        tokens,
+        word_to_id,
+        window_size=2,
+        negative_samples_size=5
+    )
 
     config = Config(        
-        vocab_size=vocab_size,
+        vocab_size=VOCAB_SIZE,
         emb_size=50,
         learning_rate=0.01,
         epochs=1000,
         batch_size=128,
         print_cost=True
     )
-    print("Configuration - {}".format(config))
+
+    print(f"""Vocabulary size: {VOCAB_SIZE}\nEmbedding size: {config.emb_size}\nLearning rate: {config.learning_rate}\nEpochs: {config.epochs}\nBatch size: {config.batch_size}\nPrint cost: {config.print_cost}""")
+    
     params = skipgram_model_training_ns(
         X, Y, negative_samples, config,
         parameters=None,
