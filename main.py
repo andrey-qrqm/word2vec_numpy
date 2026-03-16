@@ -45,7 +45,7 @@ def get_text(filename):
 
 def tokenize(text):
     # obtains tokens with a least 1 alphabet
-    pattern = re.compile(r'[A-Za-z]+[\w^\']*|[\w^\']*[A-Za-z]+[\w^\']*')
+    pattern = re.compile(r"[A-Za-z][\w\']*|[\w\']*[A-Za-z][\w\']*")
     return pattern.findall(text.lower())
 
 def mapping(tokens):
