@@ -5,7 +5,8 @@ Word2Vec skip-gram model with negative sampling on NumPy
 
 1. Install dependencies:
     ```bash
-    pip install -r requirements.txt
+    pip install numpy
+    pip install pandas
     ```
 2. Run the app:
     ```bash
